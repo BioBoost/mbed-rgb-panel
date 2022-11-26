@@ -39,8 +39,8 @@ inline void RgbPanel::output_row(uint8_t address, const uint32_t * topBuffer, co
   select_row(address);
 
   for (uint8_t i = 0; i < COLS; i++) {
-    rgb0 = topBuffer[i];
-    rgb1 = bottomBuffer[i];
+    rgb0 = ((topBuffer[i] >> 21) & 0x04) + ((topBuffer[i] >> 14) & 0x02) + ((topBuffer[i] >> 7) & 0x01);
+    rgb1 = ((bottomBuffer[i] >> 21) & 0x04) + ((bottomBuffer[i] >> 14) & 0x02) + ((bottomBuffer[i] >> 7) & 0x01);
     clock();
   }
   latch();
