@@ -12,71 +12,76 @@ RgbPanel::RgbPanel(
   clear();
 }
 
-void RgbPanel::clear() {
+void RgbPanel::clear(void) {
   memset(buffer, 0, sizeof(buffer[0])*BUFFER_SIZE);
   draw();
 }
 
-// The LAT (latch) signal marks the end of a row of data.
-// OE (output enable) switches the LEDs off when transitioning from one row to the next. I think OE is also per shift register and not all at once
-// The CLK (clock) signal marks the arrival of each bit of data.
-
-void RgbPanel::draw() {
+void RgbPanel::draw(void) {
   clk = 0;
   stb = 0;
 
-  oe = 1;     // disable output
-
-  for (int row = 0; row < 16; row++) {
+  for (int row = 0; row < ROWS+1; row++) {
     // Fix ghosting by clearing previous selected row !
     // (Expensive as it doubles the time for drawing a panel)
-    for (int i = 0; i < 32; i++) {
-      rgb0 = 0;
-      rgb1 = 0;
-      clk = 1;      // Clock in
-      clk = 0;      // Clock disable
-    }
-    stb = 1;        // End of row data
-    stb = 0;        // Disable
 
-    // Switch row
-    oe = 1;         // Disable output
-    demux = row;
-    oe = 0;
+    clear_row(row-1);
 
+    // Last line get's more 'on' time, that's why it appears more bright.
+    // Fix this by iterating once more but not writing actual rgb data.
+    if (row == ROWS) break;
 
-    // Output actual data
-    for (int i = 0; i < 32; i++) {
-      rgb0 = buffer[(32*row) + i];
-      rgb1 = buffer[(32*row) + i + (BUFFER_SIZE / 2)];
-
-      clk = 1;      // Clock in
-      clk = 0;      // Clock disable
-    }
-
-    stb = 1;        // End of row data
-    stb = 0;        // Disable
-
+    output_row(row, (buffer+(COLS*row)), (buffer+(COLS*row)+HALF_BUFFER_SIZE));
   }
-
-
-
-  oe = 0;   // enable output
-
-
 }
 
-inline void RgbPanel::clock() {
-  clk = 0;
+inline void RgbPanel::output_row(uint8_t address, const uint32_t * topBuffer, const uint32_t * bottomBuffer) {
+  select_row(address);
+
+  for (uint8_t i = 0; i < COLS; i++) {
+    rgb0 = topBuffer[i];
+    rgb1 = bottomBuffer[i];
+    clock();
+  }
+  latch();
+}
+
+
+inline void RgbPanel::clear_row(uint8_t address) {
+  select_row(address);
+
+  for (int i = 0; i < COLS; i++) {
+    rgb0 = 0;
+    rgb1 = 0;
+    clock();
+  }
+  latch();
+}
+
+inline void RgbPanel::select_row(uint8_t address) {
+  // Switch row
+  disable_output();
+  demux = address;
+  enable_output();
+}
+
+// The CLK (clock) signal marks the arrival of each bit of data.
+inline void RgbPanel::clock(void) {
   clk = 1;
+  clk = 0;
 }
 
-inline void RgbPanel::latch() {
-  stb = 0;
+// The LAT (latch) signal marks the end of a row of data.
+inline void RgbPanel::latch(void) {
   stb = 1;
+  stb = 0;
 }
 
-inline void RgbPanel::blank() {
-  oe = 1;
+// OE (output enable) switches the LEDs off when transitioning from one row to the next.
+inline void RgbPanel::enable_output(void) {
   oe = 0;
+}
+
+inline void RgbPanel::disable_output(void) {
+  oe = 1;
 }
