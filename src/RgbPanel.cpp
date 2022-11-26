@@ -6,7 +6,7 @@ RgbPanel::RgbPanel(
   PinName _a, PinName _b, PinName _c, PinName _d,
   PinName _clk, PinName _stb, PinName _oe)
   :
-  rgb0(_r0, _g0, _b0), rgb1(_r1, _g1, _b1),
+  rgb0(_b0, _g0, _r0), rgb1(_b1, _g1, _r1),
   demux(_a, _b, _c, _d), clk(_clk), stb(_stb), oe(_oe) {
 
   clear();
